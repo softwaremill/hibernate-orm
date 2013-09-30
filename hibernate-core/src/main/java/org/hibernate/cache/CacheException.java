@@ -56,5 +56,5 @@ public class CacheException extends HibernateException {
 	public CacheException(Throwable cause) {
 		super( cause );
 	}
-	
+
 }
