@@ -2,7 +2,7 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply from: "./libraries.gradle"
 
-task wrapper(type: Wrapper) {
+task wrapper( type: Wrapper ) {
     gradleVersion = '1.7'
 }
 
@@ -31,7 +31,7 @@ buildscript {
     }
 }
 
-ext.hibernateTargetVersion = '4.3.0-SNAPSHOT'
+ext.hibernateTargetVersion = '4.3.0-SML-SNAPSHOT'
 ext.javaLanguageLevel = "1.6"
 
 idea {
@@ -40,10 +40,10 @@ idea {
         ipr {
             withXml { provider ->
                 provider.node.component.find { it.@name == 'VcsDirectoryMappings' }.mapping.@vcs = 'Git'
-                def maxHeapSizeConfig =  provider.node.component.find { it.@name == 'JavacSettings' }
-                if( maxHeapSizeConfig == null ){
-                    def javacSettingsNode =  provider.node.appendNode('component',[name: 'JavacSettings'])
-                    javacSettingsNode.appendNode('option', [name:"MAXIMUM_HEAP_SIZE", value:"512"])
+                def maxHeapSizeConfig = provider.node.component.find { it.@name == 'JavacSettings' }
+                if ( maxHeapSizeConfig == null ) {
+                    def javacSettingsNode = provider.node.appendNode( 'component', [name: 'JavacSettings'] )
+                    javacSettingsNode.appendNode( 'option', [name: "MAXIMUM_HEAP_SIZE", value: "512"] )
                 }
             }
             beforeMerged { project ->
@@ -60,6 +60,7 @@ idea {
 def pomName() {
     return "A Hibernate O/RM module"
 }
+
 def pomDescription() {
     return "A module of the Hibernate O/RM project"
 }
@@ -74,12 +75,12 @@ subprojects { subProject ->
     group = 'org.hibernate'
     version = rootProject.hibernateTargetVersion
     // The OSGi manifest exported package versions need to be only the numerical release -- no "SNAPSHOT" or "Final"
-    exportPackageVersion = version.replaceAll("-SNAPSHOT", "");
-    exportPackageVersion = exportPackageVersion.replaceAll(".Final", "");
+    exportPackageVersion = version.replaceAll( "-SML-SNAPSHOT", "" );
+    exportPackageVersion = exportPackageVersion.replaceAll( ".Final", "" );
 
     // minimize changes, at least for now (gradle uses 'build' by default)..
     buildDir = "target"
-    if ( ! subProject.name.startsWith( 'release' )  && ! subProject.name.startsWith( 'documentation' ) ) {
+    if ( !subProject.name.startsWith( 'release' ) && !subProject.name.startsWith( 'documentation' ) ) {
         apply plugin: 'java'
         apply plugin: 'maven-publish'
         apply plugin: 'maven-publish-auth'
@@ -123,7 +124,7 @@ subprojects { subProject ->
             testCompile( libraries.byteman )
             testCompile( libraries.byteman_install )
             testCompile( libraries.byteman_bmunit )
-            
+
             testRuntime( libraries.slf4j_api )
             testRuntime( libraries.slf4j_log4j12 )
             testRuntime( libraries.jcl_slf4j )
@@ -136,20 +137,20 @@ subprojects { subProject ->
 
             hibernateJpaModelGenTool( libraries.jpa_modelgen )
 
-            jaxb( libraries.jaxb ){
+            jaxb( libraries.jaxb ) {
                 exclude group: "javax.xml.stream"
             }
             jaxb( libraries.jaxb2_basics )
             jaxb( libraries.jaxb2_ant )
 
-            animalSniffer ( libraries.animal_sniffer )
-            javaApiSignature ( libraries.java16_signature )
+            animalSniffer( libraries.animal_sniffer )
+            javaApiSignature( libraries.java16_signature )
         }
 
         // mac-specific stuff ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ext.toolsJar = file("${System.getProperty('java.home')}/../lib/tools.jar")
+        ext.toolsJar = file( "${System.getProperty( 'java.home' )}/../lib/tools.jar" )
         if ( ext.toolsJar.exists() ) {
-            dependencies{
+            dependencies {
                 testCompile files( toolsJar )
             }
         }
@@ -171,7 +172,7 @@ subprojects { subProject ->
             java.srcDir generatedLoggingSrcDir
         }
 
-        task generateMainLoggingClasses(type: JavaCompile) {
+        task generateMainLoggingClasses( type: JavaCompile ) {
             ext.aptDumpDir = subProject.file( "${buildDir}/tmp/apt/logging" )
             classpath = compileJava.classpath + configurations.jbossLoggingTool
             source = sourceSets.main.originalJavaSrcDirs
@@ -203,14 +204,14 @@ subprojects { subProject ->
         }
 
         // for the time being eat the annoying output from running the annotation processors
-        generateMainLoggingClasses.logging.captureStandardError(LogLevel.INFO)
+        generateMainLoggingClasses.logging.captureStandardError( LogLevel.INFO )
 
         task generateSources( type: Task )
         generateSources.dependsOn generateMainLoggingClasses
 
         compileJava.dependsOn generateMainLoggingClasses
-        compileJava.options.define(compilerArgs: ["-proc:none", "-encoding", "UTF-8"])
-        compileTestJava.options.define(compilerArgs: ["-proc:none", "-encoding", "UTF-8"])
+        compileJava.options.define( compilerArgs: ["-proc:none", "-encoding", "UTF-8"] )
+        compileTestJava.options.define( compilerArgs: ["-proc:none", "-encoding", "UTF-8"] )
 
         jar {
             Set<String> exportPackages = new HashSet<String>()
@@ -219,17 +220,17 @@ subprojects { subProject ->
             // TODO: Could more of this be pulled into utilities.gradle?
             sourceSets.each { sourceSet ->
                 // skip certain source sets
-                if ( ! ['test','matrix'].contains( sourceSet.name ) ) {
+                if ( !['test', 'matrix'].contains( sourceSet.name ) ) {
                     sourceSet.java.each { javaFile ->
                         // - org.hibernate.boot.registry.classloading.internal
                         // until EntityManagerFactoryBuilderImpl no longer imports ClassLoaderServiceImpl
                         // - .util for external module use (especially envers)
                         final String[] temporaryExports = [
-                            'org.hibernate.boot.registry.classloading.internal',
-                            'org.hibernate.internal.util' ]
+                                'org.hibernate.boot.registry.classloading.internal',
+                                'org.hibernate.internal.util']
 
                         final String packageName = determinePackageName( sourceSet.java, javaFile );
-                        if ( ! temporaryExports.contains( packageName )
+                        if ( !temporaryExports.contains( packageName )
                                 && ( packageName.endsWith( ".internal" )
                                 || packageName.contains( ".internal." )
                                 || packageName.endsWith( ".test" )
@@ -251,17 +252,17 @@ subprojects { subProject ->
                 classpath = configurations.runtime
 
                 instruction 'Import-Package',
-                    // Temporarily support JTA 1.1 -- Karaf and other frameworks still
-                    // use it.  Without this, the plugin generates [1.2,2).
-                    'javax.transaction;version="[1.1,2)"',
-                    // Tell Gradle OSGi to still dynamically import the other packages.
-                    // IMPORTANT: Do not include the * in the modules' .gradle files.
-                    // If it exists more than once, the manifest will physically contain a *.
-                    '*'
-                
-                instruction 'Export-Package', exportPackages.toArray(new String[0])
-                instruction 'Private-Package', privatePackages.toArray(new String[0])
-                
+                        // Temporarily support JTA 1.1 -- Karaf and other frameworks still
+                        // use it.  Without this, the plugin generates [1.2,2).
+                        'javax.transaction;version="[1.1,2)"',
+                        // Tell Gradle OSGi to still dynamically import the other packages.
+                        // IMPORTANT: Do not include the * in the modules' .gradle files.
+                        // If it exists more than once, the manifest will physically contain a *.
+                        '*'
+
+                instruction 'Export-Package', exportPackages.toArray( new String[0] )
+                instruction 'Private-Package', privatePackages.toArray( new String[0] )
+
                 instruction 'Bundle-Vendor', 'Hibernate.org'
                 instruction 'Implementation-Url', 'http://hibernate.org'
                 instruction 'Implementation-Version', version
@@ -272,7 +273,7 @@ subprojects { subProject ->
 
         test {
             systemProperties['hibernate.test.validatefailureexpected'] = true
-            systemProperties += System.properties.findAll { it.key.startsWith( "hibernate.") }
+            systemProperties += System.properties.findAll { it.key.startsWith( "hibernate." ) }
             maxHeapSize = "1024m"
             // Not strictly needed but useful to attach a profiler:
             jvmArgs '-XX:MaxPermSize=256m'
@@ -297,17 +298,17 @@ subprojects { subProject ->
                     }
                     whenMerged { module ->
                         module.dependencies*.exported = true
-                        module.excludeFolders += module.pathFactory.path(file(".gradle"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/bundles"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/classes"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/dependency-cache"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/libs"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/reports"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/test-results"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/tmp"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/matrix"))
-                        module.excludeFolders += module.pathFactory.path(file("$buildDir/resources"))
-                        module.excludeFolders -= module.pathFactory.path(file("$buildDir"))
+                        module.excludeFolders += module.pathFactory.path( file( ".gradle" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/bundles" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/classes" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/dependency-cache" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/libs" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/reports" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/test-results" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/tmp" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/matrix" ) )
+                        module.excludeFolders += module.pathFactory.path( file( "$buildDir/resources" ) )
+                        module.excludeFolders -= module.pathFactory.path( file( "$buildDir" ) )
                     }
                 }
                 downloadSources = true
@@ -322,14 +323,13 @@ subprojects { subProject ->
         }
 
         // eclipseClasspath will not add sources to classpath unless the dirs actually exist.
-        eclipseClasspath.dependsOn("generateSources")
-
+        eclipseClasspath.dependsOn( "generateSources" )
 
         // Animal Sniffer ~~~~~~~~~~~~~~~~~~
         //      add animal sniffer Java API checking to the main compile tasks
 
         // copy the resolved Animal Sniffer signature dependency artifact to a known location and name
-        task copyJavaApiSignature(type: Copy) {
+        task copyJavaApiSignature( type: Copy ) {
             from configurations.javaApiSignature
             into "$buildDir/javaApiSignature/"
             rename '.*signature', 'javaApi.signature'
@@ -348,13 +348,13 @@ subprojects { subProject ->
 
             ant.animalSniffer(
                     signature: "$buildDir/javaApiSignature/javaApi.signature",
-                    classpath: sourceSets.main.compileClasspath.asPath) {
+                    classpath: sourceSets.main.compileClasspath.asPath ) {
                 path( path: sourceSets.main.output.classesDir )
             }
         }
 
         // specialized API/SPI checkstyle tasks ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        task checkstylePublicSources(type: Checkstyle) {
+        task checkstylePublicSources( type: Checkstyle ) {
             checkstyleClasspath = checkstyleMain.checkstyleClasspath
             classpath = checkstyleMain.classpath
             configFile = rootProject.file( 'shared/config/checkstyle/checkstyle.xml' )
@@ -379,7 +379,7 @@ subprojects { subProject ->
 
         // Report configs ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         checkstyle {
-            sourceSets = [ subProject.sourceSets.main ]
+            sourceSets = [subProject.sourceSets.main]
             configFile = rootProject.file( 'shared/config/checkstyle/checkstyle.xml' )
             showViolations = false
             ignoreFailures = true
@@ -397,7 +397,7 @@ subprojects { subProject ->
         checkstyleMain.exclude '**/org/hibernate/cfg/*'
 
         findbugs {
-            sourceSets = [ subProject.sourceSets.main, subProject.sourceSets.test ]
+            sourceSets = [subProject.sourceSets.main, subProject.sourceSets.test]
             ignoreFailures = true
         }
         // exclude generated sources
@@ -414,7 +414,7 @@ subprojects { subProject ->
 
         publishing {
             publications {
-                mavenJava(MavenPublication) {
+                mavenJava( MavenPublication ) {
                     from components.java
 
                     artifact sourcesJar {
@@ -471,23 +471,17 @@ subprojects { subProject ->
 
             repositories {
                 maven {
-                    if ( subProject.version.endsWith( 'SNAPSHOT' ) ) {
-                        name 'jboss-snapshots-repository'
-                        url 'https://repository.jboss.org/nexus/content/repositories/snapshots'
-                    }
-                    else {
-                        name 'jboss-releases-repository'
-                        url 'https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/'
-                    }
+                    name 'sml-hibernate-fork-snapshots-repository'
+                    url 'https://nexus.softwaremill.com/content/repositories/hibernate-orm-fork/'
                 }
             }
 
             generatePomFileForMavenJavaPublication {
-                destination = file("$buildDir/generated-pom.xml")
+                destination = file( "$buildDir/generated-pom.xml" )
             }
         }
 
-        task sourcesJar(type: Jar, dependsOn: compileJava) {
+        task sourcesJar( type: Jar, dependsOn: compileJava ) {
             from sourceSets.main.allSource
             classifier = 'sources'
         }
@@ -495,4 +489,4 @@ subprojects { subProject ->
 
 }
 
-task release(type: Task, dependsOn: 'release:release')
+task release( type: Task, dependsOn: 'release:release' )
